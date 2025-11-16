@@ -5,20 +5,22 @@ this module attempts to find approximate timestamps of matches and corresponding
 
 this module also attempts to figure out what event(s) are contained within
 """
-import os
-import sys
-import time
-from pathlib import Path
-from typing import Dict
-import typing
-import numpy as np
-import cv2
-import operator
+
 import dataclasses
 import multiprocessing
+import operator
+import os
 import pickle
-from . import consts, matchers, util, match_result
+import sys
+import time
+import typing
+from pathlib import Path
+from typing import Dict
 
+import cv2
+import numpy as np
+
+from . import consts, match_result, matchers, util
 
 ## CONVENTIONS:
 # everything should use xy/(x, y)/x=v[0], y=v[1] EXCEPT for numpy shit
@@ -37,18 +39,21 @@ class Pass1EventMatch:
     display_data: util.DisplayData
     is_replay: bool
 
+
 @dataclasses.dataclass
 class Pass1EventData:
     fps: int
     width: int
     height: int
     matches: typing.List[Pass1EventMatch] = dataclasses.field(default_factory=list)
-    match_result_map: Dict[str, match_result.MatchResultScreen] = dataclasses.field(default_factory=dict)
+    match_result_map: Dict[str, match_result.MatchResultScreen] = dataclasses.field(
+        default_factory=dict
+    )
 
     def to_file(self, fname: str):
         with open(fname, "wb") as f:
             pickle.dump(self, f)
-    
+
     @classmethod
     def from_file(cls, fname: str) -> typing.Self:
         with open(fname, "rb") as f:
@@ -57,20 +62,23 @@ class Pass1EventData:
 
 ## helper functions
 def mult_tuple(t, v):
-    return tuple(tv * v for tv in t) 
+    return tuple(tv * v for tv in t)
+
 
 def run_task(rtd):
-    #return run(video_path, en_name=en_name, pout=pout, poll=1, debug=False, seek=seek, fcount=seg_len).matches
+    # return run(video_path, en_name=en_name, pout=pout, poll=1, debug=False, seek=seek, fcount=seg_len).matches
     return run(*rtd.args, **rtd.kwargs).matches
+
 
 class RunTaskData:
     def __init__(self, *args, **kwargs):
         self.args = args
         self.kwargs = kwargs
 
+
 def run_parallel(video_path, threads=None, en_name=None, pout=sys.stderr, poll=1):
     """Runs all tasks in parallel.
-    *Will not necessarily increase performance lmao 
+    *Will not necessarily increase performance lmao
     """
 
     threads = threads or os.cpu_count()
@@ -85,48 +93,70 @@ def run_parallel(video_path, threads=None, en_name=None, pout=sys.stderr, poll=1
 
     seg_len = cap_len // threads
     with multiprocessing.Pool(threads) as p:
-        res = p.map(run_task, 
-            [RunTaskData(video_path, en_name=en_name, poll=1, debug=False, seek=seek, fcount=seg_len, is_para=True) for seek in range(0, cap_len, seg_len)])
-    
+        res = p.map(
+            run_task,
+            [
+                RunTaskData(
+                    video_path,
+                    en_name=en_name,
+                    poll=1,
+                    debug=False,
+                    seek=seek,
+                    fcount=seg_len,
+                    is_para=True,
+                )
+                for seek in range(0, cap_len, seg_len)
+            ],
+        )
+
     for matches in res:
         p1ed.matches.extend(matches)
-    
-    return p1ed
-    
 
-def run(video_path, pout=sys.stderr, poll=1, debug=False, seek=0, fcount=-1, is_para=False, live=False, detect_match_results=True) -> Pass1EventData:
+    return p1ed
+
+
+def run(
+    video_path,
+    pout=sys.stderr,
+    poll=1,
+    debug=False,
+    seek=0,
+    fcount=-1,
+    is_para=False,
+    live=False,
+    detect_match_results=True,
+) -> Pass1EventData:
     """Runs a fast first pass of the video.
     This will run the pipeline every second in the video, and return a Pass1EventData object
-    containing metadata and the timestamps of all frames with a match display on screen. 
-    
+    containing metadata and the timestamps of all frames with a match display on screen.
+
     """
 
     cap = cv2.VideoCapture(video_path)
-    if not cap.isOpened(): 
+    if not cap.isOpened():
         raise RuntimeError("could not open video")
 
     width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
     height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
     fps = int(cap.get(cv2.CAP_PROP_FPS))
     event_data = Pass1EventData(fps, width, height)
-    
 
-    #scalex, scaley = np.array([width, height]) / consts.BASE_IMSIZE
+    # scalex, scaley = np.array([width, height]) / consts.BASE_IMSIZE
     params = consts.ScaledParams(width, height)
 
     logo_matcher = matchers.ITDLogoMatcher(params)
     basket_matcher = matchers.ITDRedBasketMatcher(params)
 
     # read the season logo
-    
+
     poll_idx = int(fps * poll)
     assert fps > 0, "fps call returned zero ;w;"
-    
-    idx = seek-1
+
+    idx = seek - 1
     fcnt = 0
     if idx > 0:
         cap.set(cv2.CAP_PROP_POS_FRAMES, idx)
-    #print("lol")
+    # print("lol")
     avg_time = 1e-10
     prev_time = time.time()
     while cap.isOpened():
@@ -136,8 +166,7 @@ def run(video_path, pout=sys.stderr, poll=1, debug=False, seek=0, fcount=-1, is_
         if fcnt > (cap.get(cv2.CAP_PROP_FRAME_COUNT) - 3) and live:
             time.sleep(10)
             cap = cv2.VideoCapture(video_path)
-            cap.set(cv2.CAP_PROP_POS_FRAMES, fcnt-1)
-
+            cap.set(cv2.CAP_PROP_POS_FRAMES, fcnt - 1)
 
         succ, frame = cap.read()
         if not succ:
@@ -150,15 +179,22 @@ def run(video_path, pout=sys.stderr, poll=1, debug=False, seek=0, fcount=-1, is_
                 avg_time = 1e-10
 
             if not is_para:
-                print(f"time: " 
+                print(
+                    f"time: "
                     + util.timef(cap.get(cv2.CAP_PROP_POS_MSEC))
-                    + f" fps: {1 / avg_time:.6f}         ", end="\r", file=pout)
+                    + f" fps: {1 / avg_time:.6f}         ",
+                    end="\r",
+                    file=pout,
+                )
             elif idx % 300 != 0:
-                print(f"time: " 
+                print(
+                    f"time: "
                     + util.timef(cap.get(cv2.CAP_PROP_POS_MSEC))
-                    + f" fps: {1 / avg_time:.6f}         seek: {seek}", file=pout)
+                    + f" fps: {1 / avg_time:.6f}         seek: {seek}",
+                    file=pout,
+                )
         frame_duration = time.time() - prev_time
-        avg_time = avg_time * (99/100) + frame_duration * 1/100
+        avg_time = avg_time * (99 / 100) + frame_duration * 1 / 100
 
         prev_time = time.time()
 
@@ -173,12 +209,14 @@ def run(video_path, pout=sys.stderr, poll=1, debug=False, seek=0, fcount=-1, is_
 
             # we have a match! (literal)
             # also crop out the match display part of the frame
-            match_display, match_is_top = util.get_match_display(frame, match_tlbr, params)
-            
+            match_display, match_is_top = util.get_match_display(
+                frame, match_tlbr, params
+            )
+
             if util.match_is_preview(match_display, basket_matcher, params=params):
                 # welp, this is a match preview. next.
                 continue
-            
+
             # we found a match or...something
             match_name, _ = util.extract_match_name(frame, match_tlbr, params)
 
@@ -196,11 +234,9 @@ def run(video_path, pout=sys.stderr, poll=1, debug=False, seek=0, fcount=-1, is_
                 if debug:
                     print(f"reject timestamp {timestamp:!r}", file=pout)
                 continue
-            
-            
-            # check if this is teleop or auto
-            #is_tele = cap_matcher.exists(match_display, params)
 
+            # check if this is teleop or auto
+            # is_tele = cap_matcher.exists(match_display, params)
 
             # get whether or not the match display is veversed
             display_data = util.extract_display_data(match_display, params)
@@ -208,11 +244,12 @@ def run(video_path, pout=sys.stderr, poll=1, debug=False, seek=0, fcount=-1, is_
             event_match = Pass1EventMatch(
                 name=match_name,
                 top=match_is_top,
-                frame_idx = idx,
-                video_sec = video_sec,
-                match_ts = ts,
-                display_data = display_data,
-                is_replay = False)
+                frame_idx=idx,
+                video_sec=video_sec,
+                match_ts=ts,
+                display_data=display_data,
+                is_replay=False,
+            )
             event_data.matches.append(event_match)
         elif detect_match_results:
             result = match_result.detect_match_result(video_sec, frame, params)
@@ -228,6 +265,3 @@ def run(video_path, pout=sys.stderr, poll=1, debug=False, seek=0, fcount=-1, is_
         return util.DictStruct(locals())
     else:
         return event_data
-
-
-

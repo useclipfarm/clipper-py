@@ -24,8 +24,10 @@ PRE_RESULT_COARSE = 10
 PRE_RESULT_FINE = 3
 POST_SCORE_DETECT = 12
 
+
 class ScaledParams:
     """Returns an object that scales constants appropriately."""
+
     def __init__(self, in_width, in_height):
         self.in_width = in_width
         self.in_height = in_height
@@ -41,32 +43,32 @@ class ScaledParams:
         self.scaley = SCALEY
 
         # Basic dimensions.
-        self.WIDTH                  = SCALEX(1920)
-        self.HEIGHT                 = SCALEY(1080)
+        self.WIDTH = SCALEX(1920)
+        self.HEIGHT = SCALEY(1080)
 
-        self.SEASON_LOGO_WIDTH      = SCALEX(170)
-        self.NAME_LEFT_OFFSET       = SCALEX(784)  # offset from left side of season logo
-        self.NAME_WIDTH             = SCALEX(780)  # width of match name window
-        self.NAME_HEIGHT            = SCALEY(60)   # height of match name window
-        self.DISPLAY_HEIGHT         = SCALEY(180)  # height of entire match display
+        self.SEASON_LOGO_WIDTH = SCALEX(170)
+        self.NAME_LEFT_OFFSET = SCALEX(784)  # offset from left side of season logo
+        self.NAME_WIDTH = SCALEX(780)  # width of match name window
+        self.NAME_HEIGHT = SCALEY(60)  # height of match name window
+        self.DISPLAY_HEIGHT = SCALEY(180)  # height of entire match display
 
         # center timer ROI; used to determine if we're in a match or not, and the time
-        self.CENTER_TIMER_LEFT      = SCALEX(860)
-        self.CENTER_TIMER_TOP       = SCALEY(0)
-        self.CENTER_TIMER_WIDTH     = SCALEX(202)
-        self.CENTER_TIMER_HEIGHT    = SCALEY(178)
+        self.CENTER_TIMER_LEFT = SCALEX(860)
+        self.CENTER_TIMER_TOP = SCALEY(0)
+        self.CENTER_TIMER_WIDTH = SCALEX(202)
+        self.CENTER_TIMER_HEIGHT = SCALEY(178)
         self.CENTER_TIMER_VALUE_TOP = SCALEY(75)
 
         # it's not red or blue alliance as colors can be swapped
-        self.LEFT_ALLIANCE_OFFSET   = SCALEX(489) 
-        self.RIGHT_ALLIANCE_OFFSET  = SCALEX(1295)
-        self.ALLIANCE_WIDTH         = SCALEX(142)
+        self.LEFT_ALLIANCE_OFFSET = SCALEX(489)
+        self.RIGHT_ALLIANCE_OFFSET = SCALEX(1295)
+        self.ALLIANCE_WIDTH = SCALEX(142)
 
         self.LEFT_TOTAL_SCORE_OFFSET = SCALEX(647)
-        self.LEFT_TOTAL_SCORE_WIDTH  = SCALEX(200)
+        self.LEFT_TOTAL_SCORE_WIDTH = SCALEX(200)
         self.LEFT_TOTAL_SCORE_HEIGHT = SCALEY(158)
 
-        self.RESULT_QR_LEFT          = SCALEX(716)
-        self.RESULT_QR_TOP           = SCALEY(780)
-        self.RESULT_QR_WIDTH         = SCALEX(168)
-        self.RESULT_QR_HEIGHT        = SCALEY(168)
+        self.RESULT_QR_LEFT = SCALEX(716)
+        self.RESULT_QR_TOP = SCALEY(780)
+        self.RESULT_QR_WIDTH = SCALEX(168)
+        self.RESULT_QR_HEIGHT = SCALEY(168)
